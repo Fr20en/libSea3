@@ -35,13 +35,13 @@ std::string verify_variable_code = OBFUSCATE("200");         // 变量返回code
 std::string verify_heart_link = OBFUSCATE("QRL5NK61OO50") ;// 心跳验证 返回数据无加密 无需设置code
 std::string verify_heart_code = OBFUSCATE("200");// 心跳返回code
 
-std::string verify_web_link = OBFUSCATE("2IFWKTCDCCJP");// 网页登录 返回数据无加密 无需设置code
+std::string verify_web_link = OBFUSCATE("FTEDU9LHB9KA");// 网页登录 返回数据无加密 无需设置code
 std::string verify_web_code = OBFUSCATE("200");// 网页登录返回code
 
-std::string user_login_link = OBFUSCATE("1KEKHE06JSEG");// 用户登录
+std::string user_login_link = OBFUSCATE("EKPWLMHVPW50");// 用户登录
 std::string user_login_code = OBFUSCATE("200");// 用户登录code
 
-std::string user_heart_link = OBFUSCATE("NXKZF4P5EHPP");// 用户登录
+std::string user_heart_link = OBFUSCATE("0R23BMYEXZV8");// 用户登录
 std::string user_heart_code = OBFUSCATE("200");// 用户登录code
 
 std::string main_method_name = OBFUSCATE("main"); // 主方法
