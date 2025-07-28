@@ -1,14 +1,39 @@
+#include "http.h"
 #include "include/rv.h"
 #include "smemory.h"
-#include "sutils.h"
 #include "smmap.h"
-#include "http.h"
-#include "verify.h"
+#include "sutils.h"
 #include "utils.h"
-
+#include "verify.h"
+#include <iomanip>
+#include <iostream>
+#include <random>
+#include <sstream>
+#include <string>
+#include <thread>
 // 需要引用这个 因为配置文件只需要引用一次
 #include "include/easy_verfy.h"
 #include "json.hpp"
+
+std::string generate_uuid_v4() {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_int_distribution<> dis(0, 15);
+
+    std::stringstream ss;
+    for (int i = 0; i < 36; ++i) {
+        if (i == 8 || i == 13 || i == 18 || i == 23) {
+            ss << '-';
+        } else if (i == 14) {
+            ss << '4';// UUID version 4
+        } else if (i == 19) {
+            ss << "0123456789abcdef"[dis(gen) & 0x3 | 0x8];// variant 10x
+        } else {
+            ss << "0123456789abcdef"[dis(gen)];
+        }
+    }
+    return ss.str();
+}
 
 int main(int argc, char *argv[]) {
     std::cout << "欢迎使用libSea3 多工具集成静态库" << std::endl;
@@ -23,7 +48,12 @@ int main(int argc, char *argv[]) {
     std::cout << "8、测试网络验证-卡密换绑" << std::endl;
     std::cout << "9、测试网络验证-变量进阶" << std::endl;
     std::cout << "10、测试网络验证-绑定进阶" << std::endl;
-    std::cout << "11、工具类测试" << std::endl;
+    std::cout << "11、测试网络验证-网页登录" << std::endl;
+    std::cout << "12、测试网络验证-心跳验证" << std::endl;
+    std::cout << "13、测试网络验证-用户登录" << std::endl;
+    std::cout << "14、测试网络验证-用户心跳" << std::endl;
+    std::cout << "15、工具类测试" << std::endl;
+
 
     auto test_num = custom_sutils::get_input_int("请输入调试的内容:");
     switch (test_num) {
@@ -43,7 +73,7 @@ int main(int argc, char *argv[]) {
             }
 
             auto pid = smemory::get_package_pid("gg.pointers");
-            target_pid = pid; // 自己实现的读写需要自己提供PID
+            target_pid = pid;// 自己实现的读写需要自己提供PID
             std::cout << "进程ID:" << pid << std::endl;
             auto base = smemory::get_module_base_str("libgame.so", 1, "Xa");
             std::cout << "模块基址:" << std::hex << base << std::dec << std::endl;
@@ -65,10 +95,8 @@ int main(int argc, char *argv[]) {
             Vector3A v = {};
             smemory_readv::readv(base, &v, sizeof(Vector3A));
             std::cout << "读取Vector3A:" << v.x << " " << v.y << " " << v.z << std::endl;
-        }
-            break;
-        case 2:
-        {
+        } break;
+        case 2: {
             struct demo {
                 int x, y, z;
             };
@@ -82,23 +110,18 @@ int main(int argc, char *argv[]) {
             std::cout << "结构体映射:" << demo_ptr->x << " " << demo_ptr->y << " " << demo_ptr->z << std::endl;
             munmap(demo_ptr, sizeof(demo));
             // 关闭映射 能干嘛?跨进程通信啊同学,配置文件也能使用,不香嘛
-        }
-            break;
-        case 3:
-        {
+        } break;
+        case 3: {
             auto http = shttp::http_get("https://www.easyverify.top");
             std::cout << "请求是否成功: " << http.success << std::endl;
             std::cout << "状态码: " << http.code << std::endl;
             std::cout << "响应数据: " << http.data << std::endl;
             std::cout << "错误信息: " << http.error << std::endl;
-        }
-            break;
-        case 4:
-        {
+        } break;
+        case 4: {
             std::cout << "-- 测试公告" << std::endl;
-            sverify::verify_json json = {}; // 清空结构体数据
+            sverify::verify_json json = {};// 清空结构体数据
             // NOLINTNEXTLINE
-            memset(&json, 0, sizeof(sverify::verify_json));
             sverify::get_notice(json);
             if (json.success) {
                 std::cout << "获取到的公告: " << json.notice << std::endl;
@@ -109,17 +132,14 @@ int main(int argc, char *argv[]) {
             }
             std::cout << "请求状态码: " << json.status_code << std::endl;
 
-        }
-            break;
-        case 5:
-        {
-            sverify::verify_json json2 = {}; // 清空结构体数据
+        } break;
+        case 5: {
+            sverify::verify_json json2 = {};// 清空结构体数据
             // NOLINTNEXTLINE
-            memset(&json2, 0, sizeof(sverify::verify_json));
             sverify::get_update(json2);
             if (json2.success) {
                 if (json2.have_update) {
-                    std::cout << "是否强制更新: " << (json2.update_must?"强制更新":"不强制") << std::endl;
+                    std::cout << "是否强制更新: " << (json2.update_must ? "强制更新" : "不强制") << std::endl;
                     std::cout << "更新公告: " << json2.update_message << std::endl;
                     std::cout << "更新链接: " << json2.update_url << std::endl;
                 } else {
@@ -130,14 +150,11 @@ int main(int argc, char *argv[]) {
             }
             std::cout << "请求状态码: " << json2.status_code << std::endl;
 
-        }
-            break;
-        case 6:
-        {
+        } break;
+        case 6: {
             std::cout << "-- 测试变量" << std::endl;
-            sverify::verify_json json3 = {}; // 清空结构体数据
+            sverify::verify_json json3 = {};// 清空结构体数据
             // NOLINTNEXTLINE
-            memset(&json3, 0, sizeof(sverify::verify_json));
             sverify::get_variables(json3);
             if (json3.success) {
                 std::cout << "获取到的变量: " << json3.variables << std::endl;
@@ -147,15 +164,12 @@ int main(int argc, char *argv[]) {
                 std::cout << "获取变量失败: " << json3.error_message << std::endl;
             }
             std::cout << "请求状态码: " << json3.status_code << std::endl;
-        }
-            break;
-        case 7:
-        {
+        } break;
+        case 7: {
             std::cout << "-- 测试单码卡密绑定" << std::endl;
-            sverify::verify_json json4 = {}; // 清空结构体数据
+            sverify::verify_json json4 = {};// 清空结构体数据
             // NOLINTNEXTLINE
-            memset(&json4, 0, sizeof(sverify::verify_json));
-            sverify::bind_card("1ZCNK502B97GM348JLXVH6", sutils::get_imei(3), json4);
+            sverify::bind_card("K706CZVJXB23NG85H4L9M1", sutils::get_imei(3), json4);
             if (json4.success) {
                 std::cout << "卡密ID: " << json4.card_id << std::endl;
                 std::cout << "到期时间: " << json4.end_time << std::endl;
@@ -170,14 +184,11 @@ int main(int argc, char *argv[]) {
             }
             std::cout << "请求状态码: " << json4.status_code << std::endl;
 
-        }
-            break;
-        case 8:
-        {
+        } break;
+        case 8: {
             std::cout << "-- 测试单码卡密换绑" << std::endl;
-            sverify::verify_json json5 = {}; // 清空结构体数据
+            sverify::verify_json json5 = {};// 清空结构体数据
             // NOLINTNEXTLINE
-            memset(&json5, 0, sizeof(sverify::verify_json));
             sverify::unbind_card("1ZCNK502B97GM348JLXVH6", sutils::get_imei(3), json5);
             if (json5.success) {
                 std::cout << "换绑成功: 换绑成功" << std::endl;
@@ -186,10 +197,8 @@ int main(int argc, char *argv[]) {
             }
             std::cout << "请求状态码: " << json5.status_code << std::endl;
 
-        }
-            break;
-        case 9:
-        {
+        } break;
+        case 9: {
             std::cout << "-- 测试变量" << std::endl;
 
             struct variable_struct {
@@ -204,42 +213,41 @@ int main(int argc, char *argv[]) {
 
             variable_struct struct_data = {};
 
-            sverify::verify_json json3 = {}; // 清空结构体数据
+            sverify::verify_json json3 = {};// 清空结构体数据
             // NOLINTNEXTLINE
-            memset(&json3, 0, sizeof(sverify::verify_json));
             sverify::get_variables(json3);
 
             if (json3.success) {
                 nlohmann::json response = nlohmann::json::parse(json3.variables);
                 std::cout << response.dump() << std::endl;
                 auto success = !response["success"].is_null() && response["success"].get<bool>();
-                if(success) {
+                if (success) {
                     auto data = response["PUBG2"];
-                    sutils::string_to_uintptr(struct_data.矩阵头,data["矩阵头"].get<std::string>());
-                    sutils::string_to_long(struct_data.子弹防抖,data["子弹防抖"].get<std::string>());
-                    sutils::string_load_vector(struct_data.对象数组,data["对象数组"].get<std::string>());
-                    sutils::string_load_vector(struct_data.载具ID,data["载具ID"].get<std::string>());
+                    sutils::string_to_uintptr(struct_data.矩阵头, data["矩阵头"].get<std::string>());
+                    sutils::string_to_long(struct_data.子弹防抖, data["子弹防抖"].get<std::string>());
+                    sutils::string_load_vector(struct_data.对象数组, data["对象数组"].get<std::string>());
+                    sutils::string_load_vector(struct_data.载具ID, data["载具ID"].get<std::string>());
                     struct_data.开镜值 = data["开镜值"].get<int>();
                     struct_data.某个修改值 = data["某个修改值"].get<float>();
                     struct_data.某个功能开关 = data["某个功能开关"].get<bool>();
 
                     std::cout << "变量解析成功--打印" << std::endl;
-                    std::cout << "矩阵头: 0x" << std::hex << std::uppercase << struct_data.矩阵头 << std::dec <<  std::endl;
-                    std::cout << "子弹防抖: " << struct_data.子弹防抖 << std::endl; // 默认输出10进制
+                    std::cout << "矩阵头: 0x" << std::hex << std::uppercase << struct_data.矩阵头 << std::dec << std::endl;
+                    std::cout << "子弹防抖: " << struct_data.子弹防抖 << std::endl;// 默认输出10进制
                     std::cout << "开镜值: " << struct_data.开镜值 << std::endl;
                     std::cout << "对象数组: ";
-                    for (auto &i : struct_data.对象数组) {
+                    for (auto &i: struct_data.对象数组) {
                         std::cout << "0x" << std::hex << std::uppercase << i << " ";
                     }
                     std::cout << std::dec << std::endl;
                     std::cout << "载具ID: ";
-                    for (auto &i : struct_data.载具ID) {
+                    for (auto &i: struct_data.载具ID) {
                         std::cout << i << " ";
                     }
                     std::cout << std::endl;
                     std::cout << "某个修改值: " << struct_data.某个修改值 << std::endl;
-                    std::cout << "某个功能开关：" << (struct_data.某个功能开关?"开启":"关闭") << std::endl;
-                }else {
+                    std::cout << "某个功能开关：" << (struct_data.某个功能开关 ? "开启" : "关闭") << std::endl;
+                } else {
                     std::cout << "变量解析失败" << std::endl;
                 }
 
@@ -248,20 +256,17 @@ int main(int argc, char *argv[]) {
             }
             std::cout << "请求状态码: " << json3.status_code << std::endl;
 
-        }
-            break;
-        case 10:
-        {
+        } break;
+        case 10: {
             auto function_core = []() -> void {
                 std::cout << "调用受保护的方法" << std::endl;
             };
-            method_map.insert({ "main", function_core});
+            method_map.insert({ "main", function_core });
 
-            sverify::init_method(); //尝试没登录调用
+            sverify::init_method();//尝试没登录调用
             std::cout << "-- 测试单码卡密绑定" << std::endl;
-            sverify::verify_json json4 = {}; // 清空结构体数据
+            sverify::verify_json json4 = {};// 清空结构体数据
             // NOLINTNEXTLINE
-            memset(&json4, 0, sizeof(sverify::verify_json));
             sverify::bind_card("1ZCNK502B97GM348JLXVH6", sutils::get_imei(3), json4);
             if (json4.success) {
                 std::cout << "到期时间: " << json4.end_time << std::endl;
@@ -269,11 +274,122 @@ int main(int argc, char *argv[]) {
             } else {
                 std::cout << "绑定卡密失败: " << json4.error_message << std::endl;
             }
-            sverify::init_method(); //登录后调用
-        }
-            break;
-        case 11:
-        {
+            sverify::init_method();//登录后调用
+        } break;
+        case 11: {
+            std::cout << "-- 网络验证" << std::endl;
+            sverify::verify_json json4 = {};// 清空结构体数据
+            std::string uuid = generate_uuid_v4();
+            uuid = "122b598a-1f28-4086-897f-cceb50586d13";
+            std::string username = "2997036064@qq.com";
+            std::string password = "xxxxxxxx";
+            std::string url = "https://www.easyverify.cn";
+            std::string open_url = url + "/user_login/" + sutils::base64_encode(verify_project_id) + "?code=" + uuid + "&username=" + username + "&password=" + password;
+            sutils::execute_shell_command("am start -a android.intent.action.VIEW -d " + open_url + " > /dev/null 2>&1");
+            std::cout << "打开网页: " << open_url << std::endl;
+
+            for (int i = 0; i < 20; i++) {
+                sverify::web_bind(uuid, sutils::get_imei(3), json4, false);
+                if (json4.success) {
+                    if (json4.expire) {
+                        std::cout << "当前用户登录成功: " << json4.username << std::endl;
+                        std::cout << "到期时间: " << json4.end_time << std::endl;
+                    } else {
+                        std::cout << "验证失败: " << json4.error_message << std::endl;
+                    }
+                    break;
+                }
+                std::cout << "监听次数: " << i << std::endl;
+                std::this_thread::sleep_for(std::chrono::seconds(2));
+            }
+            std::cout << "验证完成: " << json4.expire << std::endl;
+
+        } break;
+        case 12: {
+            std::cout << "-- 测试单码卡密绑定" << std::endl;
+            sverify::verify_json json4 = {};// 清空结构体数据
+            // NOLINTNEXTLINE
+            sverify::bind_card("1ZCNK502B97GM348JLXVH6", sutils::get_imei(3), json4, true);
+            if (json4.success) {
+
+                auto error = 0;
+                sverify::verify_json json = {};// 清空结构体数据
+                while (error <= 3) {
+                    json = {};
+                    sverify::heart_beat(std::to_string(json4.card_id), sutils::get_imei(3), json4.token, json, true);
+                    if (json.success && json.status_code == 200) {
+                        std::cout << "心跳验证成功！" << std::endl;
+                    } else {
+                        error++;
+                        std::cout << "心跳验证失败: " << error << std::endl;
+                    }
+
+                    std::this_thread::sleep_for(std::chrono::seconds(30));
+                }
+                std::cout << "心跳验证失败! 退出程序" << std::endl;
+                exit(0);
+            } else {
+                std::cout << "绑定卡密失败: " << json4.error_message << std::endl;
+            }
+        } break;
+        case 13: {
+            std::cout << "-- 网络验证-用户登录" << std::endl;
+            sverify::verify_json json4 = {};// 清空结构体数据
+            std::string username = "2997036064@qq.com";
+            std::string password = "xxxxxxx";
+
+            sverify::user_login(username, password, json4, true);
+            if (json4.success) {
+                if (json4.expire) {
+                    std::cout << "当前用户登录成功: " << json4.username << std::endl;
+                    std::cout << "到期时间: " << json4.end_time << std::endl;
+                    std::cout << "心跳token：" << json4.token << std::endl;
+                } else {
+                    std::cout << "验证失败: " << json4.error_message << std::endl;
+                }
+            }else {
+                std::cout << "验证失败: " << json4.error_message << std::endl;
+            }
+        } break;
+        case 14: {
+
+
+            std::cout << "-- 网络验证-用户登录" << std::endl;
+            sverify::verify_json json4 = {};// 清空结构体数据
+            std::string username = "2997036064@qq.com";
+            std::string password = "xxxxxxxx";
+
+            sverify::user_login(username, password, json4, true);
+            if (json4.success) {
+                if (json4.expire) {
+                    std::cout << "当前用户登录成功: " << json4.username << std::endl;
+                    std::cout << "到期时间: " << json4.end_time << std::endl;
+                    std::cout << "心跳token：" << json4.token << std::endl;
+
+                    auto error = 0;
+                    sverify::verify_json json = {};// 清空结构体数据
+                    while (error <= 3) {
+                        json = {};
+                        sverify::user_heart_beat(std::to_string(json4.card_id), json4.token, json, true);
+                        if (json.success && json.status_code == 200) {
+                            std::cout << "心跳验证成功！" << std::endl;
+                        } else {
+                            error++;
+                            std::cout << "心跳验证失败: " << error << std::endl;
+                        }
+
+                        std::this_thread::sleep_for(std::chrono::seconds(30));
+                    }
+                    std::cout << "心跳验证失败! 退出程序" << std::endl;
+                    exit(0);
+                } else {
+                    std::cout << "验证失败: " << json4.error_message << std::endl;
+                }
+            }else {
+                std::cout << "验证失败: " << json4.error_message << std::endl;
+            }
+        } break;
+        case 15: {
             std::string str = "abc阿夜6哔";
             std::cout << "原字符串: " << str << std::endl;
             auto md5 = sutils::to_md5(str);
@@ -332,8 +448,7 @@ int main(int argc, char *argv[]) {
             imei = sutils::get_imei(3);
             std::cout << "IMEI(base64): " << imei << std::endl;
 
-        }
-            break;
+        } break;
         default:
             break;
     }
@@ -342,4 +457,3 @@ int main(int argc, char *argv[]) {
     std::cout << "欢迎下次使用! GoodNight! --阿夜" << std::endl;
     return 0;
 }
-
