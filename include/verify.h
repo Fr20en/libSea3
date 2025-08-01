@@ -41,6 +41,8 @@ extern std::string user_login_code;// 用户登录code
 extern std::string user_heart_link;// 用户登录
 extern std::string user_heart_code;// 用户登录code
 
+extern std::string file_link;// 文件下载
+
 extern int verify_encryption;       // 加密方式 1 base64自定义编码集 2 rsa非对称加密(推荐)
 extern std::string main_method_name;// 主方法
 
@@ -73,6 +75,8 @@ namespace sverify {
         bool update_must;          // 是否强制更新
         time_t timestamp;          // 服务器时间戳
         std::string error_message; // 失败的错误信息
+        FILE *file; // 文件句柄
+        size_t file_size; // 文件大小
     };
 
 
@@ -85,6 +89,7 @@ namespace sverify {
     bool web_bind(const std::string &code_, const std::string &imei_, sverify::verify_json &json_, bool log = false);                           // 网页登录
     bool user_login(const std::string &username_, const std::string &password_, sverify::verify_json &json_, bool log = false);                 // 用户登录
     bool user_heart_beat(const std::string &cid, const std::string &token_, sverify::verify_json &json_, bool log = false);                     // 用户心跳
+    bool file_download(const std::string &fid, const std::string &md5,const std::string &imei, sverify::verify_json &json_, bool log = false);                     // 用户心跳
     void init_method();                                                                                                                         // 初始化逻辑方法
 
 }

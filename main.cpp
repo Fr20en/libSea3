@@ -52,7 +52,8 @@ int main(int argc, char *argv[]) {
     std::cout << "12、测试网络验证-心跳验证" << std::endl;
     std::cout << "13、测试网络验证-用户登录" << std::endl;
     std::cout << "14、测试网络验证-用户心跳" << std::endl;
-    std::cout << "15、工具类测试" << std::endl;
+    std::cout << "15、测试网络验证-文件下载" << std::endl;
+    std::cout << "16、工具类测试" << std::endl;
 
 
     auto test_num = custom_sutils::get_input_int("请输入调试的内容:");
@@ -390,6 +391,39 @@ int main(int argc, char *argv[]) {
             }
         } break;
         case 15: {
+            std::cout << "-- 网络验证-文件下载" << std::endl;
+            sverify::verify_json json4 = {};// 清空结构体数据
+            std::string fid = "69a71aff437f3308423a2f1ca5d91a65";
+            std::string md5 = "1821258587c2467f";
+            std::string imei = sutils::get_imei(3);
+
+            sverify::file_download(fid, md5,imei, json4, true);
+            if (json4.success) {
+                if (json4.file == nullptr)
+                {
+                    // 文件是最新的
+                    std::cout << "文件是最新的,反正信息是这样" << std::endl;
+                    std::cout << json4.error_message << std::endl;
+                }else {
+                    auto file = fopen("test.pdf", "wb");
+                    rewind(json4.file);
+
+                    char buffer[1024];
+                    size_t bytesRead;
+
+                    while ((bytesRead = fread(buffer, 1, sizeof(buffer), json4.file)) > 0) {
+                        fwrite(buffer, 1, bytesRead, file);
+                    }
+                    fclose(file);
+                    fclose(json4.file);
+                    std::cout << "文件下载成功！" << std::endl;
+                }
+
+            }else {
+                std::cout << "验证失败: " << json4.error_message << std::endl;
+            }
+        } break;
+        case 16: {
             std::string str = "abc阿夜6哔";
             std::cout << "原字符串: " << str << std::endl;
             auto md5 = sutils::to_md5(str);
