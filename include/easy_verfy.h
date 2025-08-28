@@ -46,8 +46,7 @@
 
  std::string file_link = OBFUSCATE("9FHTGWCW40A0");// 文件下载
 
- std::string main_method_name = OBFUSCATE("main"); // 主方法
- std::unordered_map<std::string ,std::function<void()>> method_map;
+ std::unordered_map<std::string, std::function<std::any(std::vector<std::any>)>> method_map;
 
  bool time_enable = true;       // 函数碰撞 会保护变量 速度会慢一点
  int verify_encryption = 1;// 默认1 base64 自定义编码集 2 rsa非对称加密 3 国密(未支持) 4AES (未支持)
