@@ -1,0 +1,63 @@
+部分开源许可证
+==================
+
+版权所有 (c) 2025 AYssu
+
+一、开源部分（MIT 许可证）
+--------------------------
+
+以下部分遵循 MIT 许可证：
+- 示例代码（main.cpp, memory.cpp）
+- 头文件接口（include/ 目录）
+- Driver 实现（driver/ 目录）
+- 构建脚本（jni/, .github/）
+- 文档（README.md）
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+二、闭源部分（专有许可）
+------------------------
+
+核心静态库（lib/ 目录下的预编译库文件）为专有软件，受以下条款约束：
+
+1. 使用范围：
+   - 允许用于个人学习和非商业用途
+   - 商业使用需获得书面授权
+
+2. 禁止事项：
+   - 禁止逆向工程、反编译或反汇编核心库
+   - 禁止修改、重新分发核心库
+   - 禁止将核心库用于商业产品（未经授权）
+
+3. 免责声明：
+   核心库按"原样"提供，不提供任何明示或暗示的保证，包括但不限于
+   适销性、特定用途适用性和非侵权性的保证。在任何情况下，作者或
+   版权持有人均不对任何索赔、损害或其他责任负责。
+
+4. 商业授权：
+   如需商业使用授权，请联系：
+   Email: 1773714466@qq.com
+
+三、条款变更
+------------
+
+本许可证的条款可能会随时更新。继续使用本软件即表示您接受最新的条款。
+
+最后更新日期：2025年
+
