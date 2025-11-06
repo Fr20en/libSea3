@@ -6,15 +6,23 @@ bool init(const std::string &package);
 
 int main(int argc, char *argv[]) {
 
-    init("gg.pointers");
+    init("com.example.app");
 
-    auto module_base = smemory::get_module_base_str("libgame.so", 1, "Xa" );// 注意多了一个str的方法 支持字符串 注意大写
+    auto module_base = smemory::get_module_base_str("libil2cpp.so", 1, "Xa" );
 
     std::cout << "模块基址: " << std::hex << module_base << std::dec << std::endl;
+  
+    // 指针链条（GitHub Actions 会自动替换）
+    std::vector<uintptr_t> pointers = {};
+    
+    // 计算最终读取地址
+    uintptr_t read_pointer64 = module_base;
+    if (!pointers.empty()) {
+        read_pointer64 = pointer::get_pointer64(module_base, pointers);
+        std::cout << "指针链最终地址: " << std::hex << read_pointer64 << std::dec << std::endl;
+    }
 
-    auto i = pointer::read_int(0x776B6C61D9AC);
-   
-    std::cout << "读取数据: "  << i << std::endl;
+    // === GitHub Actions 会在这里插入操作代码 ===
     
     return 0;
 }
