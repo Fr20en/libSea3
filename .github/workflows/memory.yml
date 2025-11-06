@@ -1,63 +1,76 @@
 name: 基址修改在线构建
 
 on:
-  # 保留 push / PR 触发
+  # 只在推送 tag 时触发（例如 v1.0.0, v2.1.3 等）
   push:
-  pull_request:
+    tags:
+      - 'v*'
+      - 'V*'
   
+  # 保留手动触发功能
   workflow_dispatch:
     inputs:
       package_name:
-        description: '包名（字符串）'
-        required: true
+        description: '包名（字符串，默认：com.example.app）'
+        required: false
         type: string
+        default: 'com.example.app'
       module:
-        description: '模块（字符串）'
-        required: true
+        description: '模块（字符串，默认：libil2cpp.so）'
+        required: false
         type: string
+        default: 'libil2cpp.so'
       memory:
-        description: '内存（字符串）'
-        required: true
+        description: '内存（字符串，默认：Xa）'
+        required: false
         type: string
+        default: 'Xa'
       module_index:
-        description: '模块索引（整数）'
-        required: true
+        description: '模块索引（整数，默认：1）'
+        required: false
         type: string
+        default: '1'
       pointer_chain:
-        description: '指针链条（字符串）'
-        required: true
+        description: '指针链条（字符串，用+分隔，可为空）'
+        required: false
         type: string
+        default: ''
       modify_mode:
-        description: '修改方式'
-        required: true
+        description: '修改方式（默认：读取）'
+        required: false
         type: choice
+        default: '读取'
         options:
           - 读取
           - 修改
           - 读取并修改
           - 修改冻结
       value_type:
-        description: '修改类型'
-        required: true
+        description: '修改类型（默认：int）'
+        required: false
         type: choice
+        default: 'int'
         options:
-          - float
           - int
+          - float
       modify_value:
-        description: '修改值'
-        required: true
+        description: '修改值（默认：999）'
+        required: false
         type: string
+        default: '999'
       platform:
-        description: '平台'
-        required: true
+        description: '平台（默认：真机 64）'
+        required: false
         type: choice
+        default: '真机 64'
         options:
           - 真机 64
           - 模拟器 64
       rw_type:
-        description: '读写类型(模拟器选prw64)'
-        required: true
+        description: '读写类型（默认：syscall，模拟器必须选prw64）'
+        required: false
         type: choice
+        default: 'syscall'
         options:
           - syscall
           - prw64
@@ -71,19 +84,61 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. 打印用户输入
-      - name: 打印用户输入参数
+      # 1. 设置默认值（如果输入为空）
+      - name: 设置默认值
+        id: set_defaults
         run: |
-          echo "包名        : ${{ github.event.inputs.package_name }}"
-          echo "模块        : ${{ github.event.inputs.module }}"
-          echo "内存        : ${{ github.event.inputs.memory }}"
-          echo "模块索引    : ${{ github.event.inputs.module_index }}"
-          echo "指针链条    : ${{ github.event.inputs.pointer_chain }}"
-          echo "修改方式    : ${{ github.event.inputs.modify_mode }}"
-          echo "修改值      : ${{ github.event.inputs.modify_value }}"
-          echo "修改类型    : ${{ github.event.inputs.value_type }}"
-          echo "平台        : ${{ github.event.inputs.platform }}"
-          echo "读写方法    : ${{ github.event.inputs.rw_type }}"
+          # 设置默认值
+          PACKAGE_NAME="${{ github.event.inputs.package_name }}"
+          MODULE="${{ github.event.inputs.module }}"
+          MEMORY="${{ github.event.inputs.memory }}"
+          MODULE_INDEX="${{ github.event.inputs.module_index }}"
+          POINTER_CHAIN="${{ github.event.inputs.pointer_chain }}"
+          MODIFY_MODE="${{ github.event.inputs.modify_mode }}"
+          VALUE_TYPE="${{ github.event.inputs.value_type }}"
+          MODIFY_VALUE="${{ github.event.inputs.modify_value }}"
+          PLATFORM="${{ github.event.inputs.platform }}"
+          RW_TYPE="${{ github.event.inputs.rw_type }}"
+          
+          # 如果为空则使用默认值
+          : ${PACKAGE_NAME:="com.example.app"}
+          : ${MODULE:="libil2cpp.so"}
+          : ${MEMORY:="Xa"}
+          : ${MODULE_INDEX:="1"}
+          : ${POINTER_CHAIN:=""}
+          : ${MODIFY_MODE:="读取"}
+          : ${VALUE_TYPE:="int"}
+          : ${MODIFY_VALUE:="999"}
+          : ${PLATFORM:="真机 64"}
+          : ${RW_TYPE:="syscall"}
+          
+          # 导出环境变量
+          echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
+          echo "MODULE=$MODULE" >> $GITHUB_ENV
+          echo "MEMORY=$MEMORY" >> $GITHUB_ENV
+          echo "MODULE_INDEX=$MODULE_INDEX" >> $GITHUB_ENV
+          echo "POINTER_CHAIN=$POINTER_CHAIN" >> $GITHUB_ENV
+          echo "MODIFY_MODE=$MODIFY_MODE" >> $GITHUB_ENV
+          echo "VALUE_TYPE=$VALUE_TYPE" >> $GITHUB_ENV
+          echo "MODIFY_VALUE=$MODIFY_VALUE" >> $GITHUB_ENV
+          echo "PLATFORM=$PLATFORM" >> $GITHUB_ENV
+          echo "RW_TYPE=$RW_TYPE" >> $GITHUB_ENV
+          
+      # 2. 打印最终使用的参数
+      - name: 打印配置参数
+        run: |
+          echo "========== 构建配置 =========="
+          echo "包名        : ${{ env.PACKAGE_NAME }}"
+          echo "模块        : ${{ env.MODULE }}"
+          echo "内存        : ${{ env.MEMORY }}"
+          echo "模块索引    : ${{ env.MODULE_INDEX }}"
+          echo "指针链条    : ${{ env.POINTER_CHAIN }}"
+          echo "修改方式    : ${{ env.MODIFY_MODE }}"
+          echo "修改类型    : ${{ env.VALUE_TYPE }}"
+          echo "修改值      : ${{ env.MODIFY_VALUE }}"
+          echo "平台        : ${{ env.PLATFORM }}"
+          echo "读写方法    : ${{ env.RW_TYPE }}"
+          echo "=============================="
       # 2. 常规 checkout
       - name: Checkout source
         uses: actions/checkout@v4
@@ -118,11 +173,11 @@ jobs:
         run: |
         
           # 替换包名
-          sed -i "s/init(\"[^\"]*\");/init(\"${{ github.event.inputs.package_name }}\");/" memory.cpp
+          sed -i "s/init(\"[^\"]*\");/init(\"${{ env.PACKAGE_NAME }}\");/" memory.cpp
           # 替换模块、索引、内存（更宽松匹配）
-          sed -i "s/get_module_base_str( *\"[^\"]*\" *, *[0-9]* *, *\"[^\"]*\" *)/get_module_base_str(\"${{ github.event.inputs.module }}\", ${{ github.event.inputs.module_index }}, \"${{ github.event.inputs.memory }}\" )/" memory.cpp
+          sed -i "s/get_module_base_str( *\"[^\"]*\" *, *[0-9]* *, *\"[^\"]*\" *)/get_module_base_str(\"${{ env.MODULE }}\", ${{ env.MODULE_INDEX }}, \"${{ env.MEMORY }}\" )/" memory.cpp
           # 替换指针链条（+变,，支持空值）
-          chain=$(echo "${{ github.event.inputs.pointer_chain }}" | sed 's/+/,/g')
+          chain=$(echo "${{ env.POINTER_CHAIN }}" | sed 's/+/,/g')
           if [ -n "$chain" ]; then
             sed -i "s/std::vector<uintptr_t> pointers = {[^}]*/std::vector<uintptr_t> pointers = { $chain/" memory.cpp
           fi
@@ -130,9 +185,9 @@ jobs:
       # 5.2. 根据修改方式插入操作代码
       - name: 根据修改方式插入操作代码
         run: |
-          mode="${{ github.event.inputs.modify_mode }}"
-          vtype="${{ github.event.inputs.value_type }}"
-          mvalue="${{ github.event.inputs.modify_value }}"
+          mode="${{ env.MODIFY_MODE }}"
+          vtype="${{ env.VALUE_TYPE }}"
+          mvalue="${{ env.MODIFY_VALUE }}"
           code=""
           if [ "$mode" = "读取" ]; then
             if [ "$vtype" = "int" ]; then
@@ -163,21 +218,37 @@ jobs:
           awk -v code="$code" '{if($0~/return 0;/){print code; print $0} else {print $0}}' memory.cpp > memory.cpp.tmp && mv memory.cpp.tmp memory.cpp
           cat memory.cpp
       # 5.3. 平台和读写类型检查与配置
-      - name: 检查平台和读写类型并修改mk文件
+      - name: 检查平台和读写类型并修改代码
         run: |
-         sed -i 's#../main.cpp#../memory.cpp#' jni/Android.mk
-          if [[ "${{ github.event.inputs.platform }}" == "模拟器 64" ]]; then
-            if [[ "${{ github.event.inputs.rw_type }}" != "prw64" ]]; then
+          sed -i 's#../main.cpp#../memory.cpp#' jni/Android.mk
+          
+          # 检查平台和读写类型
+          if [[ "${{ env.PLATFORM }}" == "模拟器 64" ]]; then
+            if [[ "${{ env.RW_TYPE }}" != "prw64" ]]; then
               echo "模拟器平台必须选择prw64读写类型，已终止编译。"
               exit 1
             fi
             # 修改 Application.mk ABI
             sed -i 's/APP_ABI := arm64-v8a/APP_ABI := x86_64/' jni/Application.mk
           fi
-          if [[ "${{ github.event.inputs.rw_type }}" == "prw64" ]]; then
-            # 修改 Android.mk 源文件为 pread64_rv.cpp
-            sed -i 's#../src/syscall_rv.cpp#../src/pread64_rv.cpp#' jni/Android.mk
+          
+          # 根据读写类型修改 memory.cpp 中的 driver
+          if [[ "${{ env.RW_TYPE }}" == "prw64" ]]; then
+            # 使用 pread_driver
+            sed -i 's#driver/driver_syscall.h#driver/driver_pread.h#' memory.cpp
+            sed -i 's#syscall_driver#pread_driver#g' memory.cpp
+            echo "[+] 已切换到 pread_driver"
+          else
+            # 使用 syscall_driver (默认)
+            sed -i 's#driver/driver_pread.h#driver/driver_syscall.h#' memory.cpp
+            sed -i 's#pread_driver#syscall_driver#g' memory.cpp
+            echo "[+] 已切换到 syscall_driver"
           fi
+          
+          echo "=== 检查 memory.cpp 驱动配置 ==="
+          grep -n "driver/" memory.cpp
+          grep -n "driver_mgr" memory.cpp
+          
           cat jni/Android.mk
           cat jni/Application.mk
       # 5.4. 拷贝所有已修改文件到 build 目录，确保生效

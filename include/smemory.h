@@ -19,6 +19,13 @@ namespace smemory {
     pid_t get_package_pid(const std::string &package);
 
     /**
+     * 设置进程pid
+     * @param pid 进程pid
+     * @return 设置后的pid
+     */
+    pid_t set_pid(pid_t pid);
+
+    /**
      * 获取模块基址
      * @param name 模块名称
      * @param index 模块下标
@@ -74,6 +81,24 @@ namespace smemory {
     template<class T>
     bool set_write(std::function<long(T address, void *buffer, size_t size)> func);
 
+    /**
+     * 读取内存
+     * @param address 地址
+     * @param buffer buff
+     * @param size 字节
+     * @return 是否成功
+     */
+    bool readv(uintptr_t address, void* buffer, size_t size);
+
+
+    /**
+     * 写入内容
+     * @param address 地址
+     * @param buffer buff
+     * @param size 字节
+     * @return 是否成功
+     */
+    bool writev(uintptr_t address, void* buffer, size_t size);
     /**
      * 获取指针
      * @tparam T 指针类型

@@ -1,5 +1,5 @@
 #include "http.h"
-#include "include/rv.h"
+#include "driver/driver_syscall.h"
 #include "smemory.h"
 #include "smmap.h"
 #include "sutils.h"
@@ -60,14 +60,14 @@ int main(int argc, char *argv[]) {
     auto test_num = custom_sutils::get_input_int("请输入调试的内容:");
     switch (test_num) {
         case 1: {
+            static auto driver_mgr = new syscall_driver();
             auto read_flag = smemory::set_read<uintptr_t>([&](uintptr_t address, void *data, size_t size) -> long {
-                return smemory_readv::readv(address, data, size);
+                return driver_mgr->read(address, data, size);
             });// 调用自定义读写 实现低耦合 理论支持全读写 即使未来出了什么无敌读写也能快速适配
 
             auto write_flag = smemory::set_write<uintptr_t>([&](uintptr_t address, void *data, size_t size) -> long {
-                return smemory_readv::writev(address, data, size);
+                return driver_mgr->write(address, data, size);
             });
-
             // 设置完成 下次静态库调用的为编译的读写 小白啥也不用管 默认即可
             if (!read_flag || !write_flag) {
                 std::cout << "设置自定义读写失败!" << std::endl;
@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
             }
 
             auto pid = smemory::get_package_pid("gg.pointers");
-            target_pid = pid;// 自己实现的读写需要自己提供PID
+            driver_mgr->set_pid(pid);
             std::cout << "进程ID:" << pid << std::endl;
             auto base = smemory::get_module_base_str("libgame.so", 1, "Xa");
             std::cout << "模块基址:" << std::hex << base << std::dec << std::endl;
@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
                 float x, y, z;
             };
             Vector3A v = {};
-            smemory_readv::readv(base, &v, sizeof(Vector3A));
+            smemory::readv(base, &v, sizeof(Vector3A));
             std::cout << "读取Vector3A:" << v.x << " " << v.y << " " << v.z << std::endl;
         } break;
         case 2: {
@@ -260,12 +260,12 @@ int main(int argc, char *argv[]) {
 
         } break;
         case 10: {
-            auto function_core = []() -> void {
+           
+            method_map["main"] =  [](std::vector<std::any> args) {
                 std::cout << "调用受保护的方法" << std::endl;
+                return std::string("hello ay");
             };
-            method_map.insert({ "main", function_core });
-
-            sverify::init_method();//尝试没登录调用
+            sverify::call_function(method_map["main"],{});//尝试没登录调用
             std::cout << "-- 测试单码卡密绑定" << std::endl;
             sverify::verify_json json4 = {};// 清空结构体数据
             // NOLINTNEXTLINE
@@ -276,7 +276,8 @@ int main(int argc, char *argv[]) {
             } else {
                 std::cout << "绑定卡密失败: " << json4.error_message << std::endl;
             }
-            sverify::init_method();//登录后调用
+            auto m = sverify::call_function(method_map["main"],{});//尝试没登录调用
+            std::cout << "返回数据: " << std::any_cast<std::string>( m) << std::endl;;
         } break;
         case 11: {
             std::cout << "-- 网络验证" << std::endl;

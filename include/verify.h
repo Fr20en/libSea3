@@ -47,6 +47,7 @@ extern std::string file_link;// 文件下载
 extern int verify_encryption;       // 加密方式 1 base64自定义编码集 2 rsa非对称加密(推荐)
 extern bool time_enable;       // 函数碰撞 会保护变量 速度会慢一点
 
+
 extern std::unordered_map<std::string, std::function<std::any(std::vector<std::any>)>> method_map;
 
 namespace sverify {
