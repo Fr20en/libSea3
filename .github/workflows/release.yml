@@ -1,0 +1,218 @@
+name: 自动发布 Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - 'V*'
+      - 'release-*'
+
+env:
+  NDK_VERSION: r27
+  NDK_INSTALL_DIR: ${{ github.workspace }}/android-ndk-r27
+
+jobs:
+  create-release:
+    name: 创建 Release 并打包源码
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      # 1. 检出代码
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      # 2. 获取 tag 信息
+      - name: 获取版本信息
+        id: tag_info
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "version=${TAG_NAME#v}" >> $GITHUB_OUTPUT
+          echo "date=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
+          
+          # 获取最近的提交信息
+          COMMITS=$(git log --pretty=format:"- %s" -10)
+          echo "commits<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
+      # 3. 打包源代码（排除不需要的文件）
+      - name: 打包源代码
+        run: |
+          mkdir -p release
+          
+          # 创建完整源码包
+          tar -czf release/libSea3-${{ steps.tag_info.outputs.tag_name }}-source.tar.gz \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='obj' \
+            --exclude='libs' \
+            --exclude='build' \
+            --exclude='*.o' \
+            --exclude='*.so' \
+            --exclude='release' \
+            .
+          
+          # 创建仅头文件和 Driver 的轻量包
+          tar -czf release/libSea3-${{ steps.tag_info.outputs.tag_name }}-headers.tar.gz \
+            include/ \
+            driver/ \
+            README.md \
+            LICENSE
+          
+          # 创建预编译库包
+          tar -czf release/libSea3-${{ steps.tag_info.outputs.tag_name }}-prebuilt.tar.gz \
+            lib/ \
+            include/ \
+            driver/ \
+            jni/ \
+            README.md
+          
+          echo "✅ 打包完成"
+          ls -lh release/
+      
+      # 4. 缓存 NDK（用于编译示例）
+      - name: 缓存 NDK
+        id: cache-ndk
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.NDK_INSTALL_DIR }}
+          key: ndk-${{ env.NDK_VERSION }}-linux
+      
+      # 5. 下载 NDK（如果缓存未命中）
+      - name: 安装 Android NDK
+        if: steps.cache-ndk.outputs.cache-hit != 'true'
+        run: |
+          echo "⬇️ 下载 NDK ${{ env.NDK_VERSION }} ..."
+          wget -q "https://dl.google.com/android/repository/android-ndk-${{ env.NDK_VERSION }}-linux.zip"
+          unzip -q android-ndk-${{ env.NDK_VERSION }}-linux.zip -d /tmp
+          mv /tmp/android-ndk-${{ env.NDK_VERSION }} ${{ env.NDK_INSTALL_DIR }}
+          rm android-ndk-${{ env.NDK_VERSION }}-linux.zip
+      
+      # 6. 编译示例程序
+      - name: 编译示例程序
+        run: |
+          export ANDROID_NDK_HOME=${{ env.NDK_INSTALL_DIR }}
+          export PATH=$ANDROID_NDK_HOME:$PATH
+          
+          echo "🔨 开始编译..."
+          $ANDROID_NDK_HOME/ndk-build -j$(nproc)
+          
+          echo "✅ 编译完成"
+          ls -lh libs/
+      
+      # 7. 打包编译产物
+      - name: 打包编译产物
+        run: |
+          # 打包所有架构的可执行文件
+          tar -czf release/libSea3-${{ steps.tag_info.outputs.tag_name }}-binaries.tar.gz libs/
+          
+          # 为每个架构单独打包
+          cd libs
+          for arch in */; do
+            arch_name=${arch%/}
+            tar -czf ../release/libSea3-${{ steps.tag_info.outputs.tag_name }}-${arch_name}.tar.gz $arch_name/
+          done
+          cd ..
+          
+          echo "✅ 编译产物打包完成"
+          ls -lh release/
+      
+      # 8. 生成 Release 说明
+      - name: 生成 Release 说明
+        id: release_notes
+        run: |
+          cat > release_notes.md << 'EOF'
+          # 🎉 libSea3 ${{ steps.tag_info.outputs.tag_name }}
+          
+          **发布日期**: ${{ steps.tag_info.outputs.date }}
+          
+          ## 📦 下载说明
+          
+          ### 源码包
+          - **libSea3-${{ steps.tag_info.outputs.tag_name }}-source.tar.gz** - 完整源代码（推荐）
+          - **libSea3-${{ steps.tag_info.outputs.tag_name }}-headers.tar.gz** - 仅头文件和 Driver
+          - **libSea3-${{ steps.tag_info.outputs.tag_name }}-prebuilt.tar.gz** - 预编译库包
+          
+          ### 编译产物
+          - **libSea3-${{ steps.tag_info.outputs.tag_name }}-binaries.tar.gz** - 所有架构的可执行文件
+          - **libSea3-${{ steps.tag_info.outputs.tag_name }}-arm64-v8a.tar.gz** - ARM64 版本
+          - **libSea3-${{ steps.tag_info.outputs.tag_name }}-x86_64.tar.gz** - x86_64 版本
+          
+          ## ✨ 主要特性
+          
+          - ✅ 多种 Driver 支持（syscall、pread64、kernel）
+          - ✅ 支持 ARM64-v8a 和 x86_64 架构
+          - ✅ GitHub Actions 自动构建
+          - ✅ 完整的内存操作 API
+          - ✅ 指针链自动解析
+          
+          ## 📝 最近更新
+          
+          ${{ steps.tag_info.outputs.commits }}
+          
+          ## 🚀 快速开始
+          
+          ```bash
+          # 下载源码包
+          tar -xzf libSea3-${{ steps.tag_info.outputs.tag_name }}-source.tar.gz
+          cd libSea3
+          
+          # 编译
+          export ANDROID_NDK_HOME=/path/to/ndk
+          ndk-build
+          
+          # 或直接使用预编译版本
+          tar -xzf libSea3-${{ steps.tag_info.outputs.tag_name }}-arm64-v8a.tar.gz
+          ```
+          
+          ## 📖 文档
+          
+          详细使用说明请查看 [README.md](https://github.com/AYssu/libSea3/blob/main/README.md)
+          
+          ## 💬 反馈
+          
+          如有问题或建议，欢迎提 [Issue](https://github.com/AYssu/libSea3/issues)
+          
+          ---
+          
+          **注意**: 核心库为部分闭源，商业使用需获得授权
+          EOF
+          
+          cat release_notes.md
+      
+      # 9. 创建 GitHub Release
+      - name: 创建 Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: libSea3 ${{ steps.tag_info.outputs.tag_name }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          files: |
+            release/libSea3-${{ steps.tag_info.outputs.tag_name }}-source.tar.gz
+            release/libSea3-${{ steps.tag_info.outputs.tag_name }}-headers.tar.gz
+            release/libSea3-${{ steps.tag_info.outputs.tag_name }}-prebuilt.tar.gz
+            release/libSea3-${{ steps.tag_info.outputs.tag_name }}-binaries.tar.gz
+            release/libSea3-${{ steps.tag_info.outputs.tag_name }}-arm64-v8a.tar.gz
+            release/libSea3-${{ steps.tag_info.outputs.tag_name }}-x86_64.tar.gz
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      # 10. 输出摘要
+      - name: 输出摘要
+        run: |
+          echo "### 🎉 Release 创建成功！" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag**: ${{ steps.tag_info.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Date**: ${{ steps.tag_info.outputs.date }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "#### 📦 包含的文件:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          ls -lh release/ | awk '{if(NR>1) print "- " $9 " (" $5 ")"}' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 [查看 Release](https://github.com/${{ github.repository }}/releases/tag/${{ steps.tag_info.outputs.tag_name }})" >> $GITHUB_STEP_SUMMARY
+
